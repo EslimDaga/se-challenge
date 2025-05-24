@@ -1,1 +1,1 @@
-"""Schemas module initialization."""
+"""Routes module initialization."""

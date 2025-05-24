@@ -270,9 +270,6 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)) -> None:
 async def hard_delete_user(user_id: int, db: AsyncSession = Depends(get_db)) -> None:
     """
     Hard delete a user by ID.
-
-    ⚠️ **Warning:** This permanently removes the user from the database.
-    This action cannot be undone.
     """
     logger.info(f"Hard deleting user: {user_id}")
 
