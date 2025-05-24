@@ -1,13 +1,13 @@
-"""Database session management for SQLAlchemy."""
+"""User SQLAlchemy model for database operations."""
 
-from enum import Enum as PyEnum
-from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Boolean, Enum, Integer
+from enum import Enum
+from datetime import datetime, timezone
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum
 from app.db.base import Base
 
 
-class UserRole(PyEnum):
-    """User roles enumeration"""
+class UserRoleEnum(str, Enum):
+    """User roles enumeration for API."""
 
     ADMIN = "admin"
     USER = "user"
@@ -15,55 +15,22 @@ class UserRole(PyEnum):
 
 
 class User(Base):
-    """User model"""
+    """User SQLAlchemy model."""
 
     __tablename__ = "users"
 
-    id = Column(
-        Integer,
-        primary_key=True,
-        index=True,
-        unique=True,
-        autoincrement=True,
-    )
-
-    username = Column(String(50), nullable=False, index=True, unique=True)
-
-    email = Column(
-        String(255),
-        nullable=False,
-        unique=True,
-    )
-
-    first_name = Column(
-        String(100),
-        nullable=False,
-    )
-
-    last_name = Column(
-        String(100),
-        nullable=False,
-    )
-
-    role = Column(
-        Enum(UserRole, name="user_role"),
-        nullable=False,
-        default=UserRole.USER,
-    )
-
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    username = Column(String(50), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=False)
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+    role = Column(SQLEnum(UserRoleEnum), nullable=False, default=UserRoleEnum.USER)
+    active = Column(Boolean, nullable=False, default=True)
     created_at = Column(
-        DateTime,
-        default=datetime.utcnow,
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
-
     updated_at = Column(
-        DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-    )
-
-    active = Column(
-        Boolean,
-        default=True,
-        nullable=False,
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
