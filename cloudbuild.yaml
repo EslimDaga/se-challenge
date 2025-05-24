@@ -1,0 +1,138 @@
+steps:
+  # Step 1: Install dependencies and run tests
+  - name: 'python:3.11-slim'
+    id: 'test'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        apt-get update && apt-get install -y gcc g++ pkg-config default-libmysqlclient-dev
+        pip install -r requirements.txt
+
+        # Run linting
+        pip install flake8 black isort
+        echo "Running code formatting checks..."
+        black --check app/
+        isort --check-only app/
+        flake8 app/ --max-line-length=88 --extend-ignore=E203,W503
+
+        # Run tests
+        echo "Running tests..."
+        pytest app/tests/unit/ -v --tb=short
+
+        echo "✅ All tests passed!"
+
+  # Step 2: Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/user-management-api:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/user-management-api:latest'
+      - '.'
+    waitFor: ['test']
+
+  # Step 3: Push Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/user-management-api'
+    waitFor: ['build']
+
+  # Step 4: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/user-management-api:${SHORT_SHA}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8000'
+      - '--memory'
+      - '${_MEMORY}'
+      - '--cpu'
+      - '${_CPU}'
+      - '--min-instances'
+      - '${_MIN_INSTANCES}'
+      - '--max-instances'
+      - '${_MAX_INSTANCES}'
+      - '--concurrency'
+      - '${_CONCURRENCY}'
+      - '--timeout'
+      - '${_TIMEOUT}'
+      - '--set-env-vars'
+      - 'DATABASE_URL=${_DATABASE_URL},MYSQL_USER=${_MYSQL_USER},MYSQL_PASSWORD=${_MYSQL_PASSWORD},MYSQL_HOST=${_MYSQL_HOST},MYSQL_PORT=${_MYSQL_PORT},MYSQL_DATABASE=${_MYSQL_DATABASE}'
+      - '--labels'
+      - 'environment=${_ENVIRONMENT},version=${SHORT_SHA}'
+    waitFor: ['push']
+
+  # Step 5: Run database migrations (optional)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'migrate'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Install dependencies
+        apt-get update && apt-get install -y python3 python3-pip gcc g++ pkg-config default-libmysqlclient-dev
+        pip3 install -r requirements.txt
+
+        # Run migrations
+        echo "Running database migrations..."
+        alembic upgrade head
+
+        echo "✅ Database migrations completed!"
+    env:
+      - 'DATABASE_URL=${_DATABASE_URL}'
+      - 'MYSQL_USER=${_MYSQL_USER}'
+      - 'MYSQL_PASSWORD=${_MYSQL_PASSWORD}'
+      - 'MYSQL_HOST=${_MYSQL_HOST}'
+      - 'MYSQL_PORT=${_MYSQL_PORT}'
+      - 'MYSQL_DATABASE=${_MYSQL_DATABASE}'
+    waitFor: ['deploy']
+
+# Substitution variables with default values
+substitutions:
+  _REGION: 'us-central1'
+  _REPOSITORY: 'user-management-repo'
+  _SERVICE_NAME: 'user-management-api'
+  _MEMORY: '512Mi'
+  _CPU: '1'
+  _MIN_INSTANCES: '1'
+  _MAX_INSTANCES: '10'
+  _CONCURRENCY: '80'
+  _TIMEOUT: '300'
+  _ENVIRONMENT: 'production'
+  # Database connection variables (to be set in Cloud Build triggers)
+  _DATABASE_URL: ''
+  _MYSQL_USER: ''
+  _MYSQL_PASSWORD: ''
+  _MYSQL_HOST: ''
+  _MYSQL_PORT: '3306'
+  _MYSQL_DATABASE: ''
+
+# Build options
+options:
+  machineType: 'E2_HIGHCPU_8'
+  substitutionOption: 'ALLOW_LOOSE'
+  logging: 'CLOUD_LOGGING_ONLY'
+
+# Build timeout
+timeout: '1200s'
+
+# Images to be stored in Artifact Registry
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/user-management-api:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/user-management-api:latest'

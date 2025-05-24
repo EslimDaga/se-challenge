@@ -45,13 +45,18 @@ async def root():
         "message": "User Management API",
         "version": settings.project_version,
         "status": "healthy",
+        "environment": settings.environment,
     }
 
 
 @app.get("/health", tags=["health"])
 async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "version": settings.project_version}
+    """Health check endpoint for Cloud Run."""
+    return {
+        "status": "healthy",
+        "version": settings.project_version,
+        "environment": settings.environment,
+    }
 
 
 app.include_router(api_router, prefix=settings.api_v1_str)
@@ -63,7 +68,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
-        reload=True,
+        port=settings.port,
+        reload=settings.environment == "development",
         log_level=settings.log_level.lower(),
     )

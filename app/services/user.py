@@ -42,7 +42,7 @@ class UserService:
             else:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="User creation failed",
+                    detail="Failed to create user",
                 ) from e
 
     @staticmethod
@@ -51,11 +51,9 @@ class UserService:
         result = await db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
         if user:
-            if user.created_at is None or user.updated_at is None:
-                await UserService._fix_user_timestamps(db, user)
-            logger.info(f"User retrieved: {user.username}")
+            logger.debug(f"User found: {user.username}")
         else:
-            logger.warning(f"User not found with ID: {user_id}")
+            logger.debug(f"User not found with ID: {user_id}")
         return user
 
     @staticmethod
@@ -86,7 +84,7 @@ class UserService:
         query = select(User)
 
         if active_only:
-            query = query.where(User.active)
+            query = query.where(bool(User.active))
 
         query = query.order_by(User.created_at.desc())
         result = await db.execute(query)
@@ -135,10 +133,10 @@ class UserService:
 
         try:
             update_data = user_data.model_dump(exclude_unset=True)
+            update_data["updated_at"] = datetime.now(timezone.utc)
+
             for field, value in update_data.items():
                 setattr(db_user, field, value)
-
-            db_user.updated_at = datetime.now(timezone.utc)
 
             await db.commit()
             await db.refresh(db_user)
@@ -159,7 +157,8 @@ class UserService:
                 ) from e
             else:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail="User update failed"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to update user",
                 ) from e
 
     @staticmethod

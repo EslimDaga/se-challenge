@@ -132,32 +132,15 @@ async def get_users(
     },
 )
 async def get_user(user_id: int, db: AsyncSession = Depends(get_db)) -> UserResponse:
-    """
-    Get a user by ID.
-
-    **Example response:**
-    ```json
-    {
-        "id": 1,
-        "username": "johndoe",
-        "email": "john@example.com",
-        "first_name": "John",
-        "last_name": "Doe",
-        "role": "user",
-        "active": true,
-        "created_at": "2024-01-01T00:00:00",
-        "updated_at": "2024-01-01T00:00:00"
-    }
-    ```
-    """
-    logger.info(f"Getting user: {user_id}")
-
+    """Get a user by their ID."""
     if user_id <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID"
         )
 
+    logger.info(f"Getting user: {user_id}")
     db_user = await UserService.get_user_by_id(db, user_id)
+
     if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -181,48 +164,21 @@ async def get_user(user_id: int, db: AsyncSession = Depends(get_db)) -> UserResp
 async def update_user(
     user_id: int, user: UserUpdate, db: AsyncSession = Depends(get_db)
 ) -> UserResponse:
-    """
-    Update a user by ID.
-
-    **Example request:**
-    ```json
-    {
-        "first_name": "Jane",
-        "last_name": "Smith",
-        "email": "jane@example.com"
-    }
-    ```
-    """
-    logger.info(f"Updating user: {user_id}")
-
+    """Update a user's information."""
     if user_id <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID"
         )
 
-    existing_user = await UserService.get_user_by_id(db, user_id)
-    if not existing_user:
+    logger.info(f"Updating user: {user_id}")
+    db_user = await UserService.update_user(db, user_id, user)
+
+    if not db_user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
-    if user.username and user.username != existing_user.username:
-        username_user = await UserService.get_user_by_username(db, user.username)
-        if username_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username already exists",
-            )
-
-    if user.email and user.email != existing_user.email:
-        email_user = await UserService.get_user_by_email(db, user.email)
-        if email_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Email already exists"
-            )
-
-    updated_user = await UserService.update_user(db, user_id, user)
-    return UserResponse.model_validate(updated_user)
+    return UserResponse.model_validate(db_user)
 
 
 @router.delete(
@@ -237,20 +193,16 @@ async def update_user(
     },
 )
 async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)) -> None:
-    """
-    Delete a user by ID (soft delete).
-
-    This endpoint performs a soft delete by setting the user's active status to False.
-    """
-    logger.info(f"Deleting user: {user_id}")
-
+    """Soft delete a user."""
     if user_id <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID"
         )
 
-    deleted = await UserService.delete_user(db, user_id)
-    if not deleted:
+    logger.info(f"Deleting user: {user_id}")
+    success = await UserService.delete_user(db, user_id)
+
+    if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
@@ -268,18 +220,16 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_db)) -> None:
     },
 )
 async def hard_delete_user(user_id: int, db: AsyncSession = Depends(get_db)) -> None:
-    """
-    Hard delete a user by ID.
-    """
-    logger.info(f"Hard deleting user: {user_id}")
-
+    """Permanently delete a user from the database."""
     if user_id <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID"
         )
 
-    deleted = await UserService.hard_delete_user(db, user_id)
-    if not deleted:
+    logger.info(f"Hard deleting user: {user_id}")
+    success = await UserService.hard_delete_user(db, user_id)
+
+    if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
