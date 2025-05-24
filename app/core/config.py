@@ -9,12 +9,12 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """Application settings."""
 
-    database_url: str = os.getenv("DATABASE_URL", "")
-    mysql_user: str = os.getenv("MYSQL_USER", "root")
-    mysql_password: str = os.getenv("MYSQL_PASSWORD", "")
-    mysql_host: str = os.getenv("MYSQL_HOST", "localhost")
-    mysql_port: str = os.getenv("MYSQL_PORT", "3306")
-    mysql_database: str = os.getenv("MYSQL_DATABASE", "se_challenge")
+    database_url: str = os.getenv("DATABASE_URL")
+    mysql_user: str = os.getenv("MYSQL_USER")
+    mysql_password: str = os.getenv("MYSQL_PASSWORD")
+    mysql_host: str = os.getenv("MYSQL_HOST")
+    mysql_port: str = os.getenv("MYSQL_PORT")
+    mysql_database: str = os.getenv("MYSQL_DATABASE")
 
     api_v1_str: str = "/api/v1"
     project_name: str = "User Management API"
