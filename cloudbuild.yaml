@@ -106,7 +106,7 @@ steps:
 # Substitution variables with default values
 substitutions:
   _REGION: 'us-central1'
-  _REPOSITORY: 'user-management-repo'
+  _REPOSITORY: 'se-challenge'
   _SERVICE_NAME: 'user-management-api'
   _MEMORY: '512Mi'
   _CPU: '1'
