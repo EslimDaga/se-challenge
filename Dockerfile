@@ -1,5 +1,5 @@
-# Use Python 3.11 slim image for smaller size
-FROM python:3.11-slim
+# Multi-stage build para desarrollo y producción
+FROM python:3.11-slim AS base
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -40,12 +40,23 @@ RUN addgroup --system --gid 1001 appgroup \
 # Switch to non-root user
 USER appuser
 
-# Expose port
+# Development stage
+FROM base AS development
+ENV ENVIRONMENT=development
+ENV PORT=8000
+EXPOSE 8000
+# Para desarrollo con hot reload
+CMD ["fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
+
+# Production stage
+FROM base AS production
+ENV ENVIRONMENT=production
+ENV PORT=8080
 EXPOSE 8080
 
-# Health check - simplified for Cloud Run
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Run the application - Use uvicorn directly for better control
+# Para producción sin reload
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
