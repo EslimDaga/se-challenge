@@ -43,7 +43,7 @@ USER appuser
 # Development stage
 FROM base AS development
 ENV ENVIRONMENT=development
-ENV PORT=8000
+# Para desarrollo local forzamos puerto 8000
 EXPOSE 8000
 # Para desarrollo con hot reload
 CMD ["fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
@@ -51,12 +51,12 @@ CMD ["fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
 # Production stage
 FROM base AS production
 ENV ENVIRONMENT=production
-ENV PORT=8080
+# NO definir PORT aquí - Cloud Run lo maneja automáticamente
 EXPOSE 8080
 
-# Health check
+# Health check usando variable PORT dinámica
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8080}/health || exit 1
 
-# Para producción sin reload
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1"]
+# Para producción - usar variable PORT dinámica
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1"]
