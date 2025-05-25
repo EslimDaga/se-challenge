@@ -17,6 +17,7 @@ RUN apt-get update \
         g++ \
         pkg-config \
         default-libmysqlclient-dev \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better layer caching
@@ -27,6 +28,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
+
+# Ensure alembic.ini has correct permissions
+RUN chmod 644 alembic.ini
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 appgroup \
@@ -39,9 +43,9 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
-# Health check
+# Health check - simplified for Cloud Run
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application - Use uvicorn directly for better control
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

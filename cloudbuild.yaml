@@ -9,16 +9,16 @@ steps:
         apt-get update && apt-get install -y gcc g++ pkg-config default-libmysqlclient-dev
         pip install -r requirements.txt
 
-        # Run linting (optional, continue on failure)
+        # Run linting (continue on failure)
         pip install flake8 black isort
         echo "Running code formatting checks..."
-        black --check app/ || echo "Black formatting issues found"
-        isort --check-only app/ || echo "Import sorting issues found"
-        flake8 app/ --max-line-length=88 --extend-ignore=E203,W503 || echo "Flake8 issues found"
+        black --check app/ || echo "⚠️ Black formatting issues found, continuing..."
+        isort --check-only app/ || echo "⚠️ Import sorting issues found, continuing..."
+        flake8 app/ --max-line-length=88 --extend-ignore=E203,W503 || echo "⚠️ Flake8 issues found, continuing..."
 
-        # Run tests (optional, continue on failure for now)
+        # Run tests (continue on failure for deployment)
         echo "Running tests..."
-        pytest app/tests/ -v --tb=short || echo "Some tests failed, continuing deployment"
+        pytest app/tests/ -v --tb=short || echo "⚠️ Some tests failed, continuing with deployment..."
 
         echo "✅ Build checks completed!"
 
@@ -28,9 +28,9 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'us-central1-docker.pkg.dev/${PROJECT_ID}/se-challenge/user-management-api:${SHORT_SHA}'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/se-challenge/user-management-api:$BUILD_ID'
       - '-t'
-      - 'us-central1-docker.pkg.dev/${PROJECT_ID}/se-challenge/user-management-api:latest'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/se-challenge/user-management-api:latest'
       - '.'
     waitFor: ['test']
 
@@ -40,7 +40,7 @@ steps:
     args:
       - 'push'
       - '--all-tags'
-      - 'us-central1-docker.pkg.dev/${PROJECT_ID}/se-challenge/user-management-api'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/se-challenge/user-management-api'
     waitFor: ['build']
 
   # Step 4: Deploy to Cloud Run
@@ -52,16 +52,18 @@ steps:
       - 'deploy'
       - 'user-management-api'
       - '--image'
-      - 'us-central1-docker.pkg.dev/${PROJECT_ID}/se-challenge/user-management-api:${SHORT_SHA}'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/se-challenge/user-management-api:$BUILD_ID'
       - '--region'
       - 'us-central1'
       - '--platform'
       - 'managed'
+      - '--service-account'
+      - '${_SERVICE_ACCOUNT_EMAIL}'
       - '--allow-unauthenticated'
       - '--port'
       - '8000'
       - '--memory'
-      - '512Mi'
+      - '1Gi'
       - '--cpu'
       - '1'
       - '--min-instances'
@@ -77,43 +79,8 @@ steps:
       - '--set-env-vars'
       - 'ENVIRONMENT=production'
       - '--labels'
-      - 'environment=production,version=${SHORT_SHA}'
+      - 'environment=production,version=$BUILD_ID'
     waitFor: ['push']
-
-  # Step 5: Run database migrations
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: 'migrate'
-    entrypoint: 'bash'
-    args:
-      - '-c'
-      - |
-        # Install dependencies
-        apt-get update && apt-get install -y python3 python3-pip gcc g++ pkg-config default-libmysqlclient-dev
-        pip3 install -r requirements.txt
-
-        # Run migrations
-        echo "Running database migrations..."
-        alembic upgrade head
-
-        echo "✅ Database migrations completed!"
-    secretEnv: ['DATABASE_URL', 'MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_HOST', 'MYSQL_PORT', 'MYSQL_DATABASE']
-    waitFor: ['deploy']
-
-# Available secrets
-availableSecrets:
-  secretManager:
-  - versionName: 'projects/latam-460700/secrets/database-url/versions/latest'
-    env: 'DATABASE_URL'
-  - versionName: 'projects/latam-460700/secrets/mysql-user/versions/latest'
-    env: 'MYSQL_USER'
-  - versionName: 'projects/latam-460700/secrets/mysql-password/versions/latest'
-    env: 'MYSQL_PASSWORD'
-  - versionName: 'projects/latam-460700/secrets/mysql-host/versions/latest'
-    env: 'MYSQL_HOST'
-  - versionName: 'projects/latam-460700/secrets/mysql-port/versions/latest'
-    env: 'MYSQL_PORT'
-  - versionName: 'projects/latam-460700/secrets/mysql-database/versions/latest'
-    env: 'MYSQL_DATABASE'
 
 # Build options
 options:
@@ -124,7 +91,12 @@ options:
 # Build timeout
 timeout: '1200s'
 
+# Substitutions
+substitutions:
+  _REPOSITORY: 'se-challenge'
+  _SERVICE_ACCOUNT_EMAIL: 'user-management-sa@${PROJECT_ID}.iam.gserviceaccount.com'
+
 # Images to be stored in Artifact Registry
 images:
-  - 'us-central1-docker.pkg.dev/${PROJECT_ID}/se-challenge/user-management-api:${SHORT_SHA}'
-  - 'us-central1-docker.pkg.dev/${PROJECT_ID}/se-challenge/user-management-api:latest'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/se-challenge/user-management-api:$BUILD_ID'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/se-challenge/user-management-api:latest'
