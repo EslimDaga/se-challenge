@@ -75,7 +75,7 @@ steps:
       - '--update-secrets'
       - 'DATABASE_URL=database-url:latest,MYSQL_USER=mysql-user:latest,MYSQL_PASSWORD=mysql-password:latest,MYSQL_HOST=mysql-host:latest,MYSQL_PORT=mysql-port:latest,MYSQL_DATABASE=mysql-database:latest'
       - '--set-env-vars'
-      - 'ENVIRONMENT=production,PORT=8080'
+      - 'ENVIRONMENT=production'
       - '--labels'
       - 'environment=production,version=$BUILD_ID'
     waitFor: ['push']
