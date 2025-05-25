@@ -1,5 +1,4 @@
 steps:
-  # Step 1: Install dependencies and run tests
   - name: 'python:3.11-slim'
     id: 'test'
     entrypoint: 'bash'
@@ -22,7 +21,6 @@ steps:
 
         echo "✅ Build checks completed!"
 
-  # Step 2: Build Docker image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build'
     args:
@@ -36,7 +34,6 @@ steps:
       - '.'
     waitFor: ['test']
 
-  # Step 3: Push Docker image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push'
     args:
@@ -45,7 +42,6 @@ steps:
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/se-challenge/user-management-api'
     waitFor: ['build']
 
-  # Step 4: Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy'
     entrypoint: 'gcloud'
@@ -62,6 +58,8 @@ steps:
       - '--service-account'
       - '${_SERVICE_ACCOUNT_EMAIL}'
       - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
       - '--memory'
       - '1Gi'
       - '--cpu'
@@ -77,26 +75,22 @@ steps:
       - '--update-secrets'
       - 'DATABASE_URL=database-url:latest,MYSQL_USER=mysql-user:latest,MYSQL_PASSWORD=mysql-password:latest,MYSQL_HOST=mysql-host:latest,MYSQL_PORT=mysql-port:latest,MYSQL_DATABASE=mysql-database:latest'
       - '--set-env-vars'
-      - 'ENVIRONMENT=production'
+      - 'ENVIRONMENT=production,PORT=8080'
       - '--labels'
       - 'environment=production,version=$BUILD_ID'
     waitFor: ['push']
 
-# Build options
 options:
   machineType: 'E2_HIGHCPU_8'
   substitutionOption: 'ALLOW_LOOSE'
   logging: 'CLOUD_LOGGING_ONLY'
 
-# Build timeout
 timeout: '1200s'
 
-# Substitutions
 substitutions:
   _REPOSITORY: 'se-challenge'
   _SERVICE_ACCOUNT_EMAIL: 'user-management-sa@${PROJECT_ID}.iam.gserviceaccount.com'
 
-# Images to be stored in Artifact Registry
 images:
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/se-challenge/user-management-api:$BUILD_ID'
   - 'us-central1-docker.pkg.dev/$PROJECT_ID/se-challenge/user-management-api:latest'
