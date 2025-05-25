@@ -2,6 +2,10 @@
 
 A robust and scalable user management API built with FastAPI, SQLAlchemy, and MySQL. This project provides a complete CRUD (Create, Read, Update, Delete) interface for user management with features like pagination, filtering, soft deletes, and comprehensive testing.
 
+# Frontend Preview
+
+https://se-challenge-frontend.vercel.app/
+
 ## ⚡ Quick Start
 
 ### 1. Clone the Repository

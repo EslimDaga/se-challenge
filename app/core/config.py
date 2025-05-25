@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     backend_cors_origins: List[str] = [
         "http://localhost:3000",
         "http://localhost:8080",
+        "https://se-challenge-frontend.vercel.app",
     ]
 
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
