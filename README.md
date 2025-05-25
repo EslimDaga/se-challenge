@@ -2,9 +2,16 @@
 
 A robust and scalable user management API built with FastAPI, SQLAlchemy, and MySQL. This project provides a complete CRUD (Create, Read, Update, Delete) interface for user management with features like pagination, filtering, soft deletes, and comprehensive testing.
 
-# Frontend Preview
+## 🖼️ Frontend Preview
 
-https://se-challenge-frontend.vercel.app/
+![User Management API Preview](https://raw.githubusercontent.com/EslimDaga/se-challenge/refs/heads/main/preview.jpeg)
+
+### 🔗 Related Repositories
+
+- **Frontend Application**: [se-challenge-frontend](https://github.com/EslimDaga/se-challenge-frontend)
+- **Live Demo**: [https://se-challenge-frontend.vercel.app/](https://se-challenge-frontend.vercel.app/)
+
+---
 
 ## ⚡ Quick Start
 
@@ -215,11 +222,6 @@ All settings are managed through the `app/core/config.py` file using Pydantic Se
 | `active` | BOOLEAN | User active status |
 | `created_at` | DATETIME | Creation timestamp |
 | `updated_at` | DATETIME | Last update timestamp |
-
-## 🚀 Deployment
-
-### Using Docker
-
 
 ## 📝 License
 
