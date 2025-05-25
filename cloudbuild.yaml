@@ -27,6 +27,8 @@ steps:
     id: 'build'
     args:
       - 'build'
+      - '--target'
+      - 'production'
       - '-t'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/se-challenge/user-management-api:$BUILD_ID'
       - '-t'
@@ -61,7 +63,7 @@ steps:
       - '${_SERVICE_ACCOUNT_EMAIL}'
       - '--allow-unauthenticated'
       - '--port'
-      - '8000'
+      - '8080'
       - '--memory'
       - '1Gi'
       - '--cpu'
@@ -77,7 +79,7 @@ steps:
       - '--update-secrets'
       - 'DATABASE_URL=database-url:latest,MYSQL_USER=mysql-user:latest,MYSQL_PASSWORD=mysql-password:latest,MYSQL_HOST=mysql-host:latest,MYSQL_PORT=mysql-port:latest,MYSQL_DATABASE=mysql-database:latest'
       - '--set-env-vars'
-      - 'ENVIRONMENT=production'
+      - 'ENVIRONMENT=production,PORT=8080'
       - '--labels'
       - 'environment=production,version=$BUILD_ID'
     waitFor: ['push']
